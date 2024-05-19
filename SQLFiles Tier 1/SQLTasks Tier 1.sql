@@ -164,19 +164,24 @@ QUESTIONS:
 The output of facility name and total revenue, sorted by revenue. Remember
 that there's a different cost for guests and members! */
 
+q10_table = con.execute('SELECT facility_name, SUM(cost) AS total_revenue FROM (SELECT f.name AS facility_name, b.memid AS id, CASE WHEN b.memid = 0 THEN f.guestcost * b.slots ELSE f.membercost * b.slots END AS cost FROM Bookings as b JOIN Facilities as f ON b.facid = f.facid) AS sub GROUP BY facility_name ORDER BY total_revenue ASC LIMIT 0, 3')
+q10 = pd.DataFrame(q10_table.fetchall(), columns = q10_table.keys())
+q10
+
 /* Q11: Produce a report of members and who recommended them in alphabetic surname,firstname order */
 
-SELECT CONCAT_WS(', ', m1.surname, m1.firstname) AS name,
-	CASE
-		WHEN m2.surname LIKE 'GUEST' THEN NULL
-		ELSE CONCAT_WS(', ', m2.surname, m2.firstname) 
-	END AS referred_by
-FROM Members as m1
-INNER JOIN Members as m2
-ON m2.memid = m1.recommendedby
+q11_table = con.execute('SELECT (m1.surname || ", " || m1.firstname) AS name, CASE WHEN m1.recommendedby IS NULL THEN "none" ELSE (m2.surname || ", " || m2.firstname) END AS referred_by FROM Members AS m1 FULL JOIN Members AS m2 ON m2.memid = m1.recommendedby WHERE name IS NOT NULL ORDER BY name')
+q11 = pd.DataFrame(q11_table.fetchall(), columns = q11_table.keys())
+q11
 
 /* Q12: Find the facilities with their usage by member, but not guests */
 
+q12_table = con.execute('SELECT facility_name, name, COUNT(name) AS facility_use FROM (SELECT b.starttime as time, b.slots AS n_slot, f.name AS facility_name, b.memid AS id, (m.surname || ", " || m.firstname) as name FROM Bookings AS b JOIN Facilities AS f ON b.facid = f.facid JOIN Members AS m ON b.memid = m.memid WHERE b.memid <> 0) AS sub GROUP BY facility_name, name ORDER BY time;')
+q12 = pd.DataFrame(q12_table.fetchall())
+q12
 
 /* Q13: Find the facilities usage by month, but not guests */
 
+q13_table = con.execute('SELECT facility_name, month, COUNT(month) AS facility_use FROM (SELECT b.starttime as time, CASE WHEN b.starttime LIKE "2012-07%" THEN "07" WHEN b.starttime LIKE "2012-08%" THEN "08" WHEN b.starttime LIKE "2012-09%" THEN "09" END AS month, b.slots AS n_slot, f.name AS facility_name, b.memid AS id, (m.surname || ", " || m.firstname) as name FROM Bookings AS b JOIN Facilities AS f ON b.facid = f.facid JOIN Members AS m ON b.memid = m.memid WHERE b.memid <> 0) AS sub GROUP BY facility_name, month ORDER BY facility_name, month;')
+q13 = pd.DataFrame(q13_table.fetchall())
+q13
